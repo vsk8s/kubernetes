@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make hyperkube
+	strip _output/local/bin/linux/amd64/hyperkube
+
+override_dh_auto_test:
+	/bin/true

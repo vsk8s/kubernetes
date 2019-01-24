@@ -1,0 +1,12 @@
+kubernetes-hyperkube (1.13.2-1~1.gbpcff46a) unstable; urgency=medium
+
+  * Bump to upstream release 1.13.2
+  * Add link packages for most kubernetes daemons
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Thu, 24 Jan 2019 18:20:17 +0100
+
+kubernetes-hyperkube (1.11.2-0) unstable; urgency=medium
+
+  * Initial upload
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@vseth.ethz.ch>  Mon, 03 Sep 2018 10:34:58 +0200
