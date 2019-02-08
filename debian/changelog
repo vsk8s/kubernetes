@@ -1,3 +1,9 @@
+kubernetes-hyperkube (1.13.2-2~1.gbp6bd0b2) unstable; urgency=medium
+
+  * Fix typo in dependencies
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Fri, 08 Feb 2019 13:12:35 +0100
+
 kubernetes-hyperkube (1.13.2-1~1.gbpcff46a) unstable; urgency=medium
 
   * Bump to upstream release 1.13.2
