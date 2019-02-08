@@ -1,3 +1,10 @@
+kubernetes-hyperkube (1.13.3-1~1.gbp8f6ad2) unstable; urgency=medium
+
+  * Bump to upstream release 1.13.3
+  * Fix semver build error
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Fri, 08 Feb 2019 13:24:12 +0100
+
 kubernetes-hyperkube (1.13.2-2~1.gbp6bd0b2) unstable; urgency=medium
 
   * Fix typo in dependencies
