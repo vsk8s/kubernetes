@@ -25,7 +25,7 @@ Description: Use kubernetes-hyperkube to provide kube-apiserver
 
 Package: kubernetes-hyperkube-kube-controller-manager
 Architecture: any
-Depends: kubernetes-hyperkub
+Depends: kubernetes-hyperkube
 Description: Use kubernetes-hyperkube to provide kube-controller-manager
 
 Package: kubernetes-hyperkube-kube-proxy
