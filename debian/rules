@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 
+# K8S will bark that the debian release branch name is not a valid semver,
+# which is correct but besides the point. Avoid this by hardcoding the version.
+KUBE_GIT_VERSION=v1.13.3
+
 %:
 	dh $@
 
