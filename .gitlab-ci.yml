@@ -10,8 +10,10 @@ stages:
 
 build:
   stage: build
-  script:
+  before_script:
+    - apt update
     - apt install rsync
+  script:
     - gbp buildpackage --git-ignore-branch -b -us -uc
     - mv ../*.deb . # GitLab can't copy from the parent directory...
   artifacts:
