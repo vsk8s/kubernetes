@@ -13,8 +13,10 @@ build:
   before_script:
     - apt update
     - apt install -y rsync golang-1.12
+    - rm /usr/bin/go
+    - cd /usr/bin
+    - ln -s ../lib/go-1.12/bin/go go
   script:
-    - export PATH=/usr/lib/go-1.12/bin:$PATH
     - gbp buildpackage --git-ignore-branch -b -us -uc
     - mv ../*.deb . # GitLab can't copy from the parent directory...
   artifacts:
