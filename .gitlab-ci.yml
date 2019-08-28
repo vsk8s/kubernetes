@@ -14,8 +14,9 @@ build:
     - apt update
     - apt install -y rsync golang-1.12
     - rm /usr/bin/go
-    - cd /usr/bin
-    - ln -s ../lib/go-1.12/bin/go go
+    - rm /usr/bin/gofmt
+    - ln -s /usr/lib/go-1.12/bin/go /usr/bin/go
+    - ln -s /usr/lib/go-1.12/bin/gofmt /usr/bin/gofmt
   script:
     - gbp buildpackage --git-ignore-branch -b -us -uc
     - mv ../*.deb . # GitLab can't copy from the parent directory...
