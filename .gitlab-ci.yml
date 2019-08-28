@@ -1,4 +1,4 @@
-image: docker.git.sos.ethz.ch/isg/debian-ci-base:buster
+image: docker.git.sos.ethz.ch/isg/debian-ci-base-int:buster
 
 variables:
   DISTRIBUTION_VER: "buster"
