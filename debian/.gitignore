@@ -1,0 +1,10 @@
+files
+*.substvars
+*.log
+kubernetes-hyperkube
+kubernetes-hyperkube-kubectl
+kubernetes-hyperkube-kube-apiserver
+kubernetes-hyperkube-kube-controller-manager
+kubernetes-hyperkube-kubelet
+kubernetes-hyperkube-kube-proxy
+kubernetes-hyperkube-kube-scheduler
