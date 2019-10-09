@@ -1,3 +1,9 @@
+kubernetes-hyperkube (1.15.4-2~1.afdc700.1) unstable; urgency=medium
+
+  * Rebuild with Golang 1.12.10 due to CVE 2019-16276
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Wed, 09 Oct 2019 11:51:18 +0200
+
 kubernetes-hyperkube (1.15.4-1~1.afdc70dc) unstable; urgency=medium
 
   * Bump to upstream release 1.15.4
