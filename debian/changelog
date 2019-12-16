@@ -1,3 +1,9 @@
+kubernetes-hyperkube (1.16.4-1.1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.2
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Mon, 16 Dec 2019 12:06:16 +0100
+
 kubernetes-hyperkube (1.16.2-1) unstable; urgency=medium
 
   * Bump to upstream release 1.16.2
