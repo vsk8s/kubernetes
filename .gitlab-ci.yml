@@ -12,14 +12,14 @@ build:
   stage: build
   before_script:
     - apt update
-    - apt install -y rsync golang-1.12
+    - apt install -y rsync golang-1.13
     - rm /usr/bin/go
     - rm /usr/bin/gofmt
-    - ln -s /usr/lib/go-1.12/bin/go /usr/bin/go
-    - ln -s /usr/lib/go-1.12/bin/gofmt /usr/bin/gofmt
+    - ln -s /usr/lib/go-1.13/bin/go /usr/bin/go
+    - ln -s /usr/lib/go-1.13/bin/gofmt /usr/bin/gofmt
   script:
     - gbp buildpackage --git-ignore-branch -b -us -uc
-    - mv ../*.deb . # GitLab can't copy from the parent directory...
+    - mv ../*_1.15*.deb . # GitLab can't copy from the parent directory...
   artifacts:
     name: packets
     expire_in: 3 months
@@ -33,7 +33,7 @@ deploy_to_apt:
     GIT_STRATEGY: none
   script:
     - echo "Deploying package to $CI_APT_PREFIX prefix and $DISTRIBUTION_VER version"
-    - sudo -u repo aptly repo add $CI_APT_PREFIX *.deb
+    - sudo -u repo aptly repo add $CI_APT_PREFIX *_1.15*.deb
     - sudo -u repo aptly publish update $DISTRIBUTION_VER $CI_APT_PREFIX
   only:
     - tags
