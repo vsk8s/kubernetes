@@ -11,10 +11,8 @@ stages:
 build:
   stage: build
   before_script:
-    - apt update
-    - apt install -y rsync golang-1.13
-    - rm /usr/bin/go
-    - rm /usr/bin/gofmt
+    - rm /usr/bin/go || /bin/true 
+    - rm /usr/bin/gofmt || /bin/true
     - ln -s /usr/lib/go-1.13/bin/go /usr/bin/go
     - ln -s /usr/lib/go-1.13/bin/gofmt /usr/bin/gofmt
   script:
