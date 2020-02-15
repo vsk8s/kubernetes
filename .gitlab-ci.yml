@@ -11,10 +11,12 @@ stages:
 build:
   stage: build
   before_script:
+    - apt update
+    - apt install -y golang-1.12
     - rm /usr/bin/go || /bin/true 
     - rm /usr/bin/gofmt || /bin/true
-    - ln -s /usr/lib/go-1.13/bin/go /usr/bin/go
-    - ln -s /usr/lib/go-1.13/bin/gofmt /usr/bin/gofmt
+    - ln -s /usr/lib/go-1.12/bin/go /usr/bin/go
+    - ln -s /usr/lib/go-1.12/bin/gofmt /usr/bin/gofmt
   script:
     - gbp buildpackage --git-ignore-branch -b -us -uc
     - mv ../*_1.15*.deb . # GitLab can't copy from the parent directory...
