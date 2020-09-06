@@ -1630,11 +1630,12 @@ func TestLBExtraSecurityGroupsAnnotation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			serviceName := types.NamespacedName{Namespace: "default", Name: "myservice"}
 
-			sgList, err := c.buildELBSecurityGroupList(serviceName, "aid", test.annotations)
+			sgList, setupSg, err := c.buildELBSecurityGroupList(serviceName, "aid", test.annotations)
 			assert.NoError(t, err, "buildELBSecurityGroupList failed")
 			extraSGs := sgList[1:]
 			assert.True(t, sets.NewString(test.expectedSGs...).Equal(sets.NewString(extraSGs...)),
 				"Security Groups expected=%q , returned=%q", test.expectedSGs, extraSGs)
+			assert.True(t, setupSg, "Security Groups Setup Permissions Flag expected=%t , returned=%t", true, setupSg)
 		})
 	}
 }
@@ -1663,10 +1664,11 @@ func TestLBSecurityGroupsAnnotation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			serviceName := types.NamespacedName{Namespace: "default", Name: "myservice"}
 
-			sgList, err := c.buildELBSecurityGroupList(serviceName, "aid", test.annotations)
+			sgList, setupSg, err := c.buildELBSecurityGroupList(serviceName, "aid", test.annotations)
 			assert.NoError(t, err, "buildELBSecurityGroupList failed")
 			assert.True(t, sets.NewString(test.expectedSGs...).Equal(sets.NewString(sgList...)),
 				"Security Groups expected=%q , returned=%q", test.expectedSGs, sgList)
+			assert.False(t, setupSg, "Security Groups Setup Permissions Flag expected=%t , returned=%t", false, setupSg)
 		})
 	}
 }
@@ -1968,4 +1970,24 @@ func newMockedFakeAWSServices(id string) *FakeAWSServices {
 	s.ec2 = &MockedFakeEC2{FakeEC2Impl: s.ec2.(*FakeEC2Impl)}
 	s.elb = &MockedFakeELB{FakeELB: s.elb.(*FakeELB)}
 	return s
+}
+
+func TestAzToRegion(t *testing.T) {
+	testCases := []struct {
+		az     string
+		region string
+	}{
+		{"us-west-2a", "us-west-2"},
+		{"us-west-2-lax-1a", "us-west-2"},
+		{"ap-northeast-2a", "ap-northeast-2"},
+		{"us-gov-east-1a", "us-gov-east-1"},
+		{"us-iso-east-1a", "us-iso-east-1"},
+		{"us-isob-east-1a", "us-isob-east-1"},
+	}
+
+	for _, testCase := range testCases {
+		result, err := azToRegion(testCase.az)
+		assert.NoError(t, err)
+		assert.Equal(t, testCase.region, result)
+	}
 }

@@ -25,6 +25,7 @@ import (
 	"io"
 	"net"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -219,13 +220,15 @@ const nodeWithImpairedVolumes = "NodeWithImpairedVolumes"
 const (
 	// volumeAttachmentConsecutiveErrorLimit is the number of consecutive errors we will ignore when waiting for a volume to attach/detach
 	volumeAttachmentStatusConsecutiveErrorLimit = 10
-	// most attach/detach operations on AWS finish within 1-4 seconds
-	// By using 1 second starting interval with a backoff of 1.8
-	// we get -  [1, 1.8, 3.24, 5.832000000000001, 10.4976]
-	// in total we wait for 2601 seconds
-	volumeAttachmentStatusInitialDelay = 1 * time.Second
-	volumeAttachmentStatusFactor       = 1.8
-	volumeAttachmentStatusSteps        = 13
+
+	// Attach typically takes 2-5 seconds (average is 2). Asking before 2 seconds is just waste of API quota.
+	volumeAttachmentStatusInitialDelay = 2 * time.Second
+	// Detach typically takes 5-10 seconds (average is 6). Asking before 5 seconds is just waste of API quota.
+	volumeDetachmentStatusInitialDelay = 5 * time.Second
+	// After the initial delay, poll attach/detach with exponential backoff (2046 seconds total)
+	volumeAttachmentStatusPollDelay = 2 * time.Second
+	volumeAttachmentStatusFactor    = 2
+	volumeAttachmentStatusSteps     = 11
 
 	// createTag* is configuration of exponential backoff for CreateTag call. We
 	// retry mainly because if we create an object, we cannot tag it until it is
@@ -1200,7 +1203,13 @@ func azToRegion(az string) (string, error) {
 	if len(az) < 1 {
 		return "", fmt.Errorf("invalid (empty) AZ")
 	}
-	region := az[:len(az)-1]
+
+	r := regexp.MustCompile(`^([a-zA-Z]+-)+\d+`)
+	region := r.FindString(az)
+	if region == "" {
+		return "", fmt.Errorf("invalid AZ: %s", az)
+	}
+
 	return region, nil
 }
 
@@ -2069,17 +2078,24 @@ func (c *Cloud) applyUnSchedulableTaint(nodeName types.NodeName, reason string) 
 
 // waitForAttachmentStatus polls until the attachment status is the expected value
 // On success, it returns the last attachment state.
-func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment, error) {
+func (d *awsDisk) waitForAttachmentStatus(status string, expectedInstance, expectedDevice string) (*ec2.VolumeAttachment, error) {
 	backoff := wait.Backoff{
-		Duration: volumeAttachmentStatusInitialDelay,
+		Duration: volumeAttachmentStatusPollDelay,
 		Factor:   volumeAttachmentStatusFactor,
 		Steps:    volumeAttachmentStatusSteps,
 	}
 
-	// Because of rate limiting, we often see errors from describeVolume
+	// Because of rate limiting, we often see errors from describeVolume.
+	// Or AWS eventual consistency returns unexpected data.
 	// So we tolerate a limited number of failures.
-	// But once we see more than 10 errors in a row, we return the error
-	describeErrorCount := 0
+	// But once we see more than 10 errors in a row, we return the error.
+	errorCount := 0
+
+	// Attach/detach usually takes time. It does not make sense to start
+	// polling DescribeVolumes before some initial delay to let AWS
+	// process the request.
+	time.Sleep(getInitialAttachDetachDelay(status))
+
 	var attachment *ec2.VolumeAttachment
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
@@ -2102,8 +2118,8 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 					return false, err
 				}
 			}
-			describeErrorCount++
-			if describeErrorCount > volumeAttachmentStatusConsecutiveErrorLimit {
+			errorCount++
+			if errorCount > volumeAttachmentStatusConsecutiveErrorLimit {
 				// report the error
 				return false, err
 			}
@@ -2111,8 +2127,6 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 			klog.Warningf("Ignoring error from describe volume for volume %q; will retry: %q", d.awsID, err)
 			return false, nil
 		}
-
-		describeErrorCount = 0
 
 		if len(info.Attachments) > 1 {
 			// Shouldn't happen; log so we know if it is
@@ -2135,15 +2149,42 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 		if attachmentStatus == "" {
 			attachmentStatus = "detached"
 		}
+		if attachment != nil {
+			// AWS eventual consistency can go back in time.
+			// For example, we're waiting for a volume to be attached as /dev/xvdba, but AWS can tell us it's
+			// attached as /dev/xvdbb, where it was attached before and it was already detached.
+			// Retry couple of times, hoping AWS starts reporting the right status.
+			device := aws.StringValue(attachment.Device)
+			if expectedDevice != "" && device != "" && device != expectedDevice {
+				klog.Warningf("Expected device %s %s for volume %s, but found device %s %s", expectedDevice, status, d.name, device, attachmentStatus)
+				errorCount++
+				if errorCount > volumeAttachmentStatusConsecutiveErrorLimit {
+					// report the error
+					return false, fmt.Errorf("attachment of disk %q failed: requested device %q but found %q", d.name, expectedDevice, device)
+				}
+				return false, nil
+			}
+			instanceID := aws.StringValue(attachment.InstanceId)
+			if expectedInstance != "" && instanceID != "" && instanceID != expectedInstance {
+				klog.Warningf("Expected instance %s/%s for volume %s, but found instance %s/%s", expectedInstance, status, d.name, instanceID, attachmentStatus)
+				errorCount++
+				if errorCount > volumeAttachmentStatusConsecutiveErrorLimit {
+					// report the error
+					return false, fmt.Errorf("attachment of disk %q failed: requested device %q but found %q", d.name, expectedDevice, device)
+				}
+				return false, nil
+			}
+		}
+
 		if attachmentStatus == status {
 			// Attachment is in requested state, finish waiting
 			return true, nil
 		}
 		// continue waiting
+		errorCount = 0
 		klog.V(2).Infof("Waiting for volume %q state: actual=%s, desired=%s", d.awsID, attachmentStatus, status)
 		return false, nil
 	})
-
 	return attachment, err
 }
 
@@ -2280,7 +2321,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		klog.V(2).Infof("AttachVolume volume=%q instance=%q request returned %v", disk.awsID, awsInstance.awsID, attachResponse)
 	}
 
-	attachment, err := disk.waitForAttachmentStatus("attached")
+	attachment, err := disk.waitForAttachmentStatus("attached", awsInstance.awsID, ec2Device)
 
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
@@ -2300,6 +2341,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		return "", fmt.Errorf("unexpected state: attachment nil after attached %q to %q", diskName, nodeName)
 	}
 	if ec2Device != aws.StringValue(attachment.Device) {
+		// Already checked in waitForAttachmentStatus(), but just to be sure...
 		return "", fmt.Errorf("disk attachment of %q to %q failed: requested device %q but found %q", diskName, nodeName, ec2Device, aws.StringValue(attachment.Device))
 	}
 	if awsInstance.awsID != aws.StringValue(attachment.InstanceId) {
@@ -2357,7 +2399,7 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		return "", errors.New("no response from DetachVolume")
 	}
 
-	attachment, err := diskInfo.disk.waitForAttachmentStatus("detached")
+	attachment, err := diskInfo.disk.waitForAttachmentStatus("detached", awsInstance.awsID, "")
 	if err != nil {
 		return "", err
 	}
@@ -2946,11 +2988,6 @@ func isEqualUserGroupPair(l, r *ec2.UserIdGroupPair, compareGroupUserIDs bool) b
 // Returns true if and only if changes were made
 // The security group must already exist
 func (c *Cloud) setSecurityGroupIngress(securityGroupID string, permissions IPPermissionSet) (bool, error) {
-	// We do not want to make changes to the Global defined SG
-	if securityGroupID == c.cfg.Global.ElbSecurityGroup {
-		return false, nil
-	}
-
 	group, err := c.findSecurityGroup(securityGroupID)
 	if err != nil {
 		klog.Warningf("Error retrieving security group %q", err)
@@ -3442,19 +3479,18 @@ func getSGListFromAnnotation(annotatedSG string) []string {
 // Extra groups can be specified via annotation, as can extra tags for any
 // new groups. The annotation "ServiceAnnotationLoadBalancerSecurityGroups" allows for
 // setting the security groups specified.
-func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, loadBalancerName string, annotations map[string]string) ([]string, error) {
+func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, loadBalancerName string, annotations map[string]string) ([]string, bool, error) {
 	var err error
 	var securityGroupID string
+	// We do not want to make changes to a Global defined SG
+	var setupSg = false
 
 	sgList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerSecurityGroups])
-
-	// The below code changes makes sure that when we have Security Groups  specified with the ServiceAnnotationLoadBalancerSecurityGroups
-	// annotation we don't create a new default Security Groups
 
 	// If no Security Groups have been specified with the ServiceAnnotationLoadBalancerSecurityGroups annotation, we add the default one.
 	if len(sgList) == 0 {
 		if c.cfg.Global.ElbSecurityGroup != "" {
-			securityGroupID = c.cfg.Global.ElbSecurityGroup
+			sgList = append(sgList, c.cfg.Global.ElbSecurityGroup)
 		} else {
 			// Create a security group for the load balancer
 			sgName := "k8s-elb-" + loadBalancerName
@@ -3462,16 +3498,17 @@ func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, load
 			securityGroupID, err = c.ensureSecurityGroup(sgName, sgDescription, getLoadBalancerAdditionalTags(annotations))
 			if err != nil {
 				klog.Errorf("Error creating load balancer security group: %q", err)
-				return nil, err
+				return nil, setupSg, err
 			}
+			sgList = append(sgList, securityGroupID)
+			setupSg = true
 		}
-		sgList = append(sgList, securityGroupID)
 	}
 
 	extraSGList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerExtraSecurityGroups])
 	sgList = append(sgList, extraSGList...)
 
-	return sgList, nil
+	return sgList, setupSg, nil
 }
 
 // buildListener creates a new listener from the given port, adding an SSL certificate
@@ -3508,6 +3545,27 @@ func buildListener(port v1.ServicePort, annotations map[string]string, sslPorts 
 	listener.InstanceProtocol = &instanceProtocol
 
 	return listener, nil
+}
+
+func (c *Cloud) getSubnetCidrs(subnetIDs []string) ([]string, error) {
+	request := &ec2.DescribeSubnetsInput{}
+	for _, subnetID := range subnetIDs {
+		request.SubnetIds = append(request.SubnetIds, aws.String(subnetID))
+	}
+
+	subnets, err := c.ec2.DescribeSubnets(request)
+	if err != nil {
+		return nil, fmt.Errorf("error querying Subnet for ELB: %q", err)
+	}
+	if len(subnets) != len(subnetIDs) {
+		return nil, fmt.Errorf("error querying Subnet for ELB, got %d subnets for %v", len(subnets), subnetIDs)
+	}
+
+	cidrs := make([]string, 0, len(subnets))
+	for _, subnet := range subnets {
+		cidrs = append(cidrs, aws.StringValue(subnet.CidrBlock))
+	}
+	return cidrs, nil
 }
 
 // EnsureLoadBalancer implements LoadBalancer.EnsureLoadBalancer
@@ -3637,6 +3695,12 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 			return nil, err
 		}
 
+		subnetCidrs, err := c.getSubnetCidrs(subnetIDs)
+		if err != nil {
+			klog.Errorf("Error getting subnet cidrs: %q", err)
+			return nil, err
+		}
+
 		sourceRangeCidrs := []string{}
 		for cidr := range sourceRanges {
 			sourceRangeCidrs = append(sourceRangeCidrs, cidr)
@@ -3645,7 +3709,7 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 			sourceRangeCidrs = append(sourceRangeCidrs, "0.0.0.0/0")
 		}
 
-		err = c.updateInstanceSecurityGroupsForNLB(loadBalancerName, instances, sourceRangeCidrs, v2Mappings)
+		err = c.updateInstanceSecurityGroupsForNLB(loadBalancerName, instances, subnetCidrs, sourceRangeCidrs, v2Mappings)
 		if err != nil {
 			klog.Warningf("Error opening ingress rules for the load balancer to the instances: %q", err)
 			return nil, err
@@ -3780,7 +3844,7 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 
 	loadBalancerName := c.GetLoadBalancerName(ctx, clusterName, apiService)
 	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
-	securityGroupIDs, err := c.buildELBSecurityGroupList(serviceName, loadBalancerName, annotations)
+	securityGroupIDs, setupSg, err := c.buildELBSecurityGroupList(serviceName, loadBalancerName, annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -3788,7 +3852,7 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 		return nil, fmt.Errorf("[BUG] ELB can't have empty list of Security Groups to be assigned, this is a Kubernetes bug, please report")
 	}
 
-	{
+	if setupSg {
 		ec2SourceRanges := []*ec2.IpRange{}
 		for _, sourceRange := range sourceRanges.StringSlice() {
 			ec2SourceRanges = append(ec2SourceRanges, &ec2.IpRange{CidrIp: aws.String(sourceRange)})
@@ -4224,7 +4288,7 @@ func (c *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName strin
 			}
 		}
 
-		return c.updateInstanceSecurityGroupsForNLB(loadBalancerName, nil, nil, nil)
+		return c.updateInstanceSecurityGroupsForNLB(loadBalancerName, nil, nil, nil, nil)
 	}
 
 	lb, err := c.describeLoadBalancer(loadBalancerName)
@@ -4623,4 +4687,11 @@ func setNodeDisk(
 		nodeDiskMap[nodeName] = volumeMap
 	}
 	volumeMap[volumeID] = check
+}
+
+func getInitialAttachDetachDelay(status string) time.Duration {
+	if status == "detached" {
+		return volumeDetachmentStatusInitialDelay
+	}
+	return volumeAttachmentStatusInitialDelay
 }

@@ -34,7 +34,7 @@ LATEST_ETCD_VERSION?=3.3.15
 # REVISION provides a version number fo this image and all it's bundled
 # artifacts. It should start at zero for each LATEST_ETCD_VERSION and increment
 # for each revision of this image at that etcd version.
-REVISION?=0
+REVISION?=1
 
 # IMAGE_TAG Uniquely identifies k8s.gcr.io/etcd docker image with a tag of the form "<etcd-version>-<revision>".
 IMAGE_TAG=$(LATEST_ETCD_VERSION)-$(REVISION)
@@ -66,21 +66,7 @@ GOLANG_VERSION?=1.12.9
 GOARM?=7
 TEMP_DIR:=$(shell mktemp -d)
 
-ifeq ($(ARCH),amd64)
-    BASEIMAGE?=k8s.gcr.io/debian-base:v1.0.0
-endif
-ifeq ($(ARCH),arm)
-    BASEIMAGE?=k8s.gcr.io/debian-base-arm:v1.0.0
-endif
-ifeq ($(ARCH),arm64)
-    BASEIMAGE?=k8s.gcr.io/debian-base-arm64:v1.0.0
-endif
-ifeq ($(ARCH),ppc64le)
-    BASEIMAGE?=k8s.gcr.io/debian-base-ppc64le:v1.0.0
-endif
-ifeq ($(ARCH),s390x)
-    BASEIMAGE?=k8s.gcr.io/debian-base-s390x:v1.0.0
-endif
+BASEIMAGE?=k8s.gcr.io/build-image/debian-base-$(ARCH):v2.1.3
 
 build:
 	# Explicitly copy files to the temp directory
