@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+# K8S will bark that the debian release branch name is not a valid semver,
+# which is correct but besides the point. Avoid this by hardcoding the version.
+KUBE_GIT_VERSION=v1.20.1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make hyperkube
+	strip _output/local/bin/linux/amd64/hyperkube
+
+override_dh_auto_test:
+	/bin/true

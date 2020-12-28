@@ -1,0 +1,44 @@
+Source: kubernetes-hyperkube
+Section: utils
+Priority: optional
+Maintainer: Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>
+Build-Depends: debhelper (>=9), golang-1.15-go, rsync, binutils
+Standards-Version: 3.9.8
+Vcs-Git: https://git.sos.ethz.ch/pkgs/kubernetes.git
+Vcs-Browser: https://git.sos.ethz.ch/pkgs/kubernetes
+
+Package: kubernetes-hyperkube
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: kubernetes-hyperkube contains the Kubernetes multi-call hyperkube binary
+
+Package: kubernetes-hyperkube-kubectl
+Architecture: any
+Depends: kubernetes-hyperkube
+Conflicts: kubectl
+Description: Use kubernetes-hyperkube to provide kubectl
+
+Package: kubernetes-hyperkube-kube-apiserver
+Architecture: any
+Depends: kubernetes-hyperkube
+Description: Use kubernetes-hyperkube to provide kube-apiserver
+
+Package: kubernetes-hyperkube-kube-controller-manager
+Architecture: any
+Depends: kubernetes-hyperkube
+Description: Use kubernetes-hyperkube to provide kube-controller-manager
+
+Package: kubernetes-hyperkube-kube-proxy
+Architecture: any
+Depends: kubernetes-hyperkube
+Description: Use kubernetes-hyperkube to provide kube-proxy
+
+Package: kubernetes-hyperkube-kube-scheduler
+Architecture: any
+Depends: kubernetes-hyperkube
+Description: Use kubernetes-hyperkube to provide kube-scheduler
+
+Package: kubernetes-hyperkube-kubelet
+Architecture: any
+Depends: kubernetes-hyperkube
+Description: Use kubernetes-hyperkube to provide kubelet

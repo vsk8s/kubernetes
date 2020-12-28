@@ -1,0 +1,92 @@
+kubernetes-hyperkube (1.20.1-1) unstable; urgency=medium
+
+  * Bump to upstream release 1.20.1
+  * Also switch to Golang 1.15
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Mon, 28 Dec 2020 11:29:00 +0100
+
+kubernetes-hyperkube (1.16.15-1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.15
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Sun, 06 Sep 2020 13:24:28 +0200
+
+kubernetes-hyperkube (1.16.7-1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.7
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Sat, 15 Feb 2020 10:55:28 +0100
+
+kubernetes-hyperkube (1.16.4-1.1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.2
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Mon, 16 Dec 2019 12:06:16 +0100
+
+kubernetes-hyperkube (1.16.2-1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.2
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Tue, 29 Oct 2019 11:53:56 +0100
+
+kubernetes-hyperkube (1.16.1-1) unstable; urgency=medium
+
+  * Bump to upstream release 1.16.1
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Wed, 09 Oct 2019 11:55:15 +0200
+
+kubernetes-hyperkube (1.15.4-2~1.afdc700.1) unstable; urgency=medium
+
+  * Rebuild with Golang 1.12.10 due to CVE 2019-16276
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Wed, 09 Oct 2019 11:51:18 +0200
+
+kubernetes-hyperkube (1.15.4-1~1.afdc70dc) unstable; urgency=medium
+
+  * Bump to upstream release 1.15.4
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Sat, 28 Sep 2019 10:16:15 +0200
+
+kubernetes-hyperkube (1.15.3-1~1.2d3c76f9) unstable; urgency=medium
+
+  * Bump to upstream release 1.15.3
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Tue, 27 Aug 2019 09:14:55 +0200
+
+kubernetes-hyperkube (1.14.1-1~1.b7394102d6) unstable; urgency=medium
+
+  * Bump to upstream release 1.14.1
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Wed, 08 May 2019 10:26:28 +0200
+
+kubernetes-hyperkube (1.13.5-1~1.fe35f707c5) unstable; urgency=medium
+
+  * Bump to upstream release 1.13.5
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Wed, 08 May 2019 10:08:43 +0200
+
+kubernetes-hyperkube (1.13.3-1~1.gbp8f6ad2) unstable; urgency=medium
+
+  * Bump to upstream release 1.13.3
+  * Fix semver build error
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Fri, 08 Feb 2019 13:24:12 +0100
+
+kubernetes-hyperkube (1.13.2-2~1.gbp6bd0b2) unstable; urgency=medium
+
+  * Fix typo in dependencies
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Fri, 08 Feb 2019 13:12:35 +0100
+
+kubernetes-hyperkube (1.13.2-1~1.gbpcff46a) unstable; urgency=medium
+
+  * Bump to upstream release 1.13.2
+  * Add link packages for most kubernetes daemons
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>  Thu, 24 Jan 2019 18:20:17 +0100
+
+kubernetes-hyperkube (1.11.2-0) unstable; urgency=medium
+
+  * Initial upload
+
+ -- Maximilian Falkenstein <maximilian.falkenstein@vseth.ethz.ch>  Mon, 03 Sep 2018 10:34:58 +0200
