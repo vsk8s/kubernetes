@@ -14,11 +14,8 @@ build:
     - apt update
     - apt install -y go-md2man golang-any golang-1.15 rsync binutils
     - apt install -y -t buster-backports debhelper-compat
-    - export PATH=/usr/lib/go-1.15/bin:$PATH 
-    - export GOROOT=/usr/lib/go-1.15
-    - export GOPATH=/root/go
   script:
-    - gbp buildpackage --git-ignore-branch -b -us -uc
+    - dpkg-buildpackage -b -us -uc
     - mv ../*_1.20*.deb . # GitLab can't copy from the parent directory...
   artifacts:
     name: packets

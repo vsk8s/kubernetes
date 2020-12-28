@@ -1,44 +1,58 @@
-Source: kubernetes-hyperkube
-Section: utils
+Source: kubernetes
+Section: admin
 Priority: optional
-Maintainer: Maximilian Falkenstein <maximilian.falkenstein@sos.ethz.ch>
-Build-Depends: debhelper (>=9), golang-1.15-go, rsync, binutils
-Standards-Version: 3.9.8
-Vcs-Git: https://git.sos.ethz.ch/pkgs/kubernetes.git
-Vcs-Browser: https://git.sos.ethz.ch/pkgs/kubernetes
+Maintainer: Janos Lenart <ocsi@debian.org>
+Build-Depends: debhelper (>= 12~), bash-completion, golang-1.15-go, jq, rsync
+Standards-Version: 4.5.0
+Homepage: http://kubernetes.io/
 
-Package: kubernetes-hyperkube
-Architecture: any
+Package: kubernetes-client
+Architecture: amd64 i386 armel armhf arm64 s390x
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: kubernetes-hyperkube contains the Kubernetes multi-call hyperkube binary
+Pre-Depends: ${misc:Pre-Depends}
+Provides: kubernetes-hyperkube-kubectl
+Conflicts: kubernetes-hyperkube-kubectl
+Replaces: kubernetes-hyperkube-kubectl
+Description: Kubernetes client binary (kubectl)
+ Kubernetes is a portable, extensible, open-source platform for managing
+ containerized workloads and services, that facilitates both declarative
+ configuration and automation. It has a large, rapidly growing ecosystem.
+ Kubernetes services, support, and tools are widely available.
+ .
+ Currently this package only ships the kubectl binary. Configuration
+ (via kubeconfig) will has to be created via other means.
 
-Package: kubernetes-hyperkube-kubectl
-Architecture: any
-Depends: kubernetes-hyperkube
-Conflicts: kubectl
-Description: Use kubernetes-hyperkube to provide kubectl
+Package: kubernetes-node
+Architecture: amd64 i386 armel armhf arm64 s390x
+Depends: ${shlibs:Depends}, ${misc:Depends}, iptables (>= 1.4.21), iproute2, conntrack, ebtables, ethtool, mount, socat
+Recommends: containerd
+Pre-Depends: ${misc:Pre-Depends}
+Provides: kubernetes-hyperkube-kubelet, kubernetes-hyperkube-kube-proxy
+Conflicts: kubernetes-hyperkube-kubelet, kubernetes-hyperkube-kube-proxy
+Replaces: kubernetes-hyperkube-kubelet, kubernetes-hyperkube-kube-proxy
+Description: Kubernetes node binaries (kubelet, kube-proxy)
+ Kubernetes is a portable, extensible, open-source platform for managing
+ containerized workloads and services, that facilitates both declarative
+ configuration and automation. It has a large, rapidly growing ecosystem.
+ Kubernetes services, support, and tools are widely available.
+ .
+ Currently this package only ships the kubelet and the kube-proxy binaries.
+ Configuration, including connecting to the Kubernetes control plane (via
+ kubeconfig) will has to be created via other means.
 
-Package: kubernetes-hyperkube-kube-apiserver
-Architecture: any
-Depends: kubernetes-hyperkube
-Description: Use kubernetes-hyperkube to provide kube-apiserver
-
-Package: kubernetes-hyperkube-kube-controller-manager
-Architecture: any
-Depends: kubernetes-hyperkube
-Description: Use kubernetes-hyperkube to provide kube-controller-manager
-
-Package: kubernetes-hyperkube-kube-proxy
-Architecture: any
-Depends: kubernetes-hyperkube
-Description: Use kubernetes-hyperkube to provide kube-proxy
-
-Package: kubernetes-hyperkube-kube-scheduler
-Architecture: any
-Depends: kubernetes-hyperkube
-Description: Use kubernetes-hyperkube to provide kube-scheduler
-
-Package: kubernetes-hyperkube-kubelet
-Architecture: any
-Depends: kubernetes-hyperkube
-Description: Use kubernetes-hyperkube to provide kubelet
+Package: kubernetes-master
+Architecture: amd64 i386 armel armhf arm64 s390x
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Provides: kubernetes-hyperkube-kube-scheduler, kubernetes-hyperkube-kube-apiserver, kubernetes-hyperkube-kube-controller-manager
+Conflicts: kubernetes-hyperkube-kube-scheduler, kubernetes-hyperkube-kube-apiserver, kubernetes-hyperkube-kube-controller-manager
+Replaces: kubernetes-hyperkube-kube-scheduler, kubernetes-hyperkube-kube-apiserver, kubernetes-hyperkube-kube-controller-manager
+Description: Kubernetes master binaries
+ Kubernetes is a portable, extensible, open-source platform for managing
+ containerized workloads and services, that facilitates both declarative
+ configuration and automation. It has a large, rapidly growing ecosystem.
+ Kubernetes services, support, and tools are widely available.
+ .
+ Current this package only ships the Kubernetes master binaries kube-apiserver,
+ kube-scheduler and kube-controller-manager. Configuration, including
+ interconnection (via kubeconfig) will has to be created via other means.
